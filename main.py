@@ -214,9 +214,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 # --- Main ---
-async def main() -> None:
+async def main():
+    """Sets up the application and handlers."""
     application = Application.builder().token(BOT_TOKEN).build()
 
+    # Add conversation handler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start_command)],
         states={
@@ -227,17 +229,27 @@ async def main() -> None:
                 CommandHandler("help", help_command),
                 CommandHandler("announcement", announcement_command),
                 CommandHandler("waitinglist", waitinglist_command),
-                CommandHandler("status", status_command),
                 MessageHandler(filters.ALL & ~filters.COMMAND, handle_message),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
-
     application.add_handler(conv_handler)
 
+    # 🌸 Pandu's love starts the bot
     logger.info("💖 Bot started. Running in polling mode.")
     await application.run_polling()
 
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    import asyncio
+    try:
+        asyncio.run(main())
+    except RuntimeError as e:
+        if str(e) == "This event loop is already running":
+            # If Railway or GCP is auto-running, fallback:
+            import nest_asyncio
+            nest_asyncio.apply()
+            asyncio.get_event_loop().run_until_complete(main())
+        else:
+            raise
