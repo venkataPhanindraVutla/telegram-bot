@@ -3,6 +3,7 @@
 import logging
 import os
 import asyncio
+import nest_asyncio
 from collections import deque
 from telegram import Update
 from telegram.ext import (
@@ -215,10 +216,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 # --- Main ---
 async def main():
-    """Sets up the application and handlers."""
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Add conversation handler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start_command)],
         states={
@@ -236,20 +235,18 @@ async def main():
     )
     application.add_handler(conv_handler)
 
-    # 🌸 Pandu's love starts the bot
     logger.info("💖 Bot started. Running in polling mode.")
     await application.run_polling()
 
 
 if __name__ == "__main__":
-    import asyncio
     try:
         asyncio.run(main())
     except RuntimeError as e:
-        if str(e) == "This event loop is already running":
-            # If Railway or GCP is auto-running, fallback:
-            import nest_asyncio
+        if "already running" in str(e):
+            # 🪄 Magic patch for Railway & Docker
             nest_asyncio.apply()
-            asyncio.get_event_loop().run_until_complete(main())
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(main())
         else:
             raise
